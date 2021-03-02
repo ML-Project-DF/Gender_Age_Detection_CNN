@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_string('train_dir', '/home/dpressel/dev/work/AgeGenderDeepLe
                            'Training directory (where training data lives)')
 
 tf.app.flags.DEFINE_integer('run_id', 0,
-                           'This is the run number (pid) for training proc')
+                            'This is the run number (pid) for training proc')
 
 tf.app.flags.DEFINE_string('device_id', '/cpu:0',
                            'What processing unit to execute inference on')
@@ -62,7 +62,7 @@ tf.app.flags.DEFINE_integer('eval_interval_secs', 60 * 5,
 tf.app.flags.DEFINE_integer('num_examples', 10000,
                             """Number of examples to run.""")
 tf.app.flags.DEFINE_boolean('run_once', False,
-                         """Whether to run eval only once.""")
+                            """Whether to run eval only once.""")
 
 tf.app.flags.DEFINE_integer('image_size', 227,
                             'Image size')
@@ -71,8 +71,7 @@ tf.app.flags.DEFINE_integer('batch_size', 128,
                             'Batch size')
 
 tf.app.flags.DEFINE_string('checkpoint', 'checkpoint',
-                          'Checkpoint basename')
-
+                           'Checkpoint basename')
 
 tf.app.flags.DEFINE_string('model_type', 'default',
                            'Type of convnet')
@@ -80,7 +79,6 @@ tf.app.flags.DEFINE_string('model_type', 'default',
 tf.app.flags.DEFINE_string('requested_step_seq', '', 'Requested step to restore')
 FLAGS = tf.app.flags.FLAGS
 
-        
 
 def eval_once(saver, summary_writer, summary_op, logits, labels, num_eval, requested_step=None):
     """Run Eval once.
@@ -146,6 +144,7 @@ def eval_once(saver, summary_writer, summary_op, logits, labels, num_eval, reque
         coord.request_stop()
         coord.join(threads, stop_grace_period_secs=10)
 
+
 def evaluate(run_dir):
     with tf.Graph().as_default() as g:
         input_file = os.path.join(FLAGS.train_dir, 'md.json')
@@ -158,16 +157,16 @@ def evaluate(run_dir):
 
         model_fn = select_model(FLAGS.model_type)
 
-
         with tf.device(FLAGS.device_id):
             print('Executing on %s' % FLAGS.device_id)
-            images, labels, _ = inputs(FLAGS.train_dir, FLAGS.batch_size, FLAGS.image_size, train=not eval_data, num_preprocess_threads=FLAGS.num_preprocess_threads)
+            images, labels, _ = inputs(FLAGS.train_dir, FLAGS.batch_size, FLAGS.image_size, train=not eval_data,
+                                       num_preprocess_threads=FLAGS.num_preprocess_threads)
             logits = model_fn(md['nlabels'], images, 1, False)
             summary_op = tf.summary.merge_all()
-            
+
             summary_writer = tf.summary.FileWriter(run_dir, g)
             saver = tf.train.Saver()
-            
+
             if FLAGS.requested_step_seq:
                 sequence = FLAGS.requested_step_seq.split(',')
                 for requested_step in sequence:
@@ -181,7 +180,7 @@ def evaluate(run_dir):
                         break
                     time.sleep(FLAGS.eval_interval_secs)
 
-                
+
 def main(argv=None):  # pylint: disable=unused-argument
     run_dir = '%s/run-%d' % (FLAGS.eval_dir, FLAGS.run_id)
     if tf.gfile.Exists(run_dir):
@@ -191,4 +190,4 @@ def main(argv=None):  # pylint: disable=unused-argument
 
 
 if __name__ == '__main__':
-  tf.app.run()
+    tf.app.run()

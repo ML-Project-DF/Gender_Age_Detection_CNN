@@ -2,7 +2,9 @@ from detect import ObjectDetector
 
 import dlib
 import cv2
+
 FACE_PAD = 50
+
 
 class FaceDetectorDlib(ObjectDetector):
     def __init__(self, model_name, basename='frontal-face', tgtdir='.'):
@@ -23,7 +25,7 @@ class FaceDetectorDlib(ObjectDetector):
             y = rect.top()
             w = rect.right() - x
             h = rect.bottom() - y
-            bb.append((x,y,w,h))
+            bb.append((x, y, w, h))
             images.append(self.sub_image('%s/%s-%d.jpg' % (self.tgtdir, self.basename, i + 1), img, x, y, w, h))
 
         print('%d faces detected' % len(images))

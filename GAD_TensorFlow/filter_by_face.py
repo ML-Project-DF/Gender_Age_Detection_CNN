@@ -8,11 +8,11 @@ from utils import *
 import csv
 
 # YOLO tiny
-#python fd.py --filename /media/dpressel/xdata/insights/converted/ --face_detection_model weights/YOLO_tiny.ckpt --face_detection_type yolo_tiny --target yolo.csv
+# python fd.py --filename /media/dpressel/xdata/insights/converted/ --face_detection_model weights/YOLO_tiny.ckpt --face_detection_type yolo_tiny --target yolo.csv
 
 # CV2
 
-#python fd.py --filename /media/dpressel/xdata/insights/converted/ --face_detection_model /usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml --target cascade.csv
+# python fd.py --filename /media/dpressel/xdata/insights/converted/ --face_detection_model /usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml --target cascade.csv
 
 tf.app.flags.DEFINE_string('filename', '',
                            'File (Image) or File list (Text/No header TSV) to process')
@@ -25,6 +25,7 @@ tf.app.flags.DEFINE_string('target', None, 'Target file name (defaults to {face_
 FACE_PAD = 0
 FLAGS = tf.app.flags.FLAGS
 
+
 def list_images(srcfile):
     with open(srcfile, 'r') as csvfile:
         delim = ',' if srcfile.endswith('.csv') else '\t'
@@ -32,8 +33,9 @@ def list_images(srcfile):
         if srcfile.endswith('.csv') or srcfile.endswith('.tsv'):
             print('skipping header')
             _ = next(reader)
-        
+
         return [row[0] for row in reader]
+
 
 def main(argv=None):  # pylint: disable=unused-argument
 
@@ -52,7 +54,8 @@ def main(argv=None):  # pylint: disable=unused-argument
         if os.path.isdir(FLAGS.filename):
             for relpath in os.listdir(FLAGS.filename):
                 abspath = os.path.join(FLAGS.filename, relpath)
-                if os.path.isfile(abspath) and any([abspath.endswith('.' + ty) for ty in ('jpg', 'png', 'JPG', 'PNG', 'jpeg')]):
+                if os.path.isfile(abspath) and any(
+                        [abspath.endswith('.' + ty) for ty in ('jpg', 'png', 'JPG', 'PNG', 'jpeg')]):
                     print(abspath)
                     files.append(abspath)
         elif any([FLAGS.filename.endswith('.' + ty) for ty in ('csv', 'tsv', 'txt')]):
@@ -72,5 +75,6 @@ def main(argv=None):  # pylint: disable=unused-argument
         except Exception as e:
             print(e)
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     tf.app.run()

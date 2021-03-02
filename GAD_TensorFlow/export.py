@@ -11,8 +11,8 @@ from tensorflow.python.saved_model import utils
 
 import os
 
-GENDER_LIST =['M','F']
-AGE_LIST = ['(0, 2)','(4, 6)','(8, 12)','(15, 20)','(25, 32)','(38, 43)','(48, 53)','(60, 100)']
+GENDER_LIST = ['M', 'F']
+AGE_LIST = ['(0, 2)', '(4, 6)', '(8, 12)', '(15, 20)', '(25, 32)', '(38, 43)', '(48, 53)', '(60, 100)']
 
 tf.app.flags.DEFINE_string('checkpoint', 'checkpoint',
                            'Checkpoint basename')
@@ -36,17 +36,18 @@ tf.app.flags.DEFINE_string('requested_step', '', 'Within the model directory, a 
 
 FLAGS = tf.app.flags.FLAGS
 
+
 def preproc_jpeg(image_buffer):
     image = tf.image.decode_jpeg(image_buffer, channels=3)
     crop = tf.image.resize_images(image, (RESIZE_AOI, RESIZE_AOI))
     # What??
-    crop = tf.image.resize_images(crop, (RESIZE_FINAL, RESIZE_FINAL))    
+    crop = tf.image.resize_images(crop, (RESIZE_FINAL, RESIZE_FINAL))
     image_out = tf.image.per_image_standardization(crop)
     return image_out
 
+
 def main(argv=None):
     with tf.Graph().as_default():
-
         serialized_tf_example = tf.placeholder(tf.string, name='tf_example')
         feature_configs = {
             'image/encoded': tf.FixedLenFeature(shape=[], dtype=tf.string),
@@ -60,7 +61,6 @@ def main(argv=None):
 
         config = tf.ConfigProto(allow_soft_placement=True)
         with tf.Session(config=config) as sess:
-
             model_fn = select_model(FLAGS.model_type)
             logits = model_fn(nlabels, images, 1, False)
             softmax_output = tf.nn.softmax(logits)
@@ -92,17 +92,17 @@ def main(argv=None):
                 tf.saved_model.signature_def_utils.build_signature_def(
                     inputs={
                         tf.saved_model.signature_constants.CLASSIFY_INPUTS:
-                    classify_inputs_tensor_info
+                            classify_inputs_tensor_info
                     },
                     outputs={
-                    tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
-                        classes_output_tensor_info,
+                        tf.saved_model.signature_constants.CLASSIFY_OUTPUT_CLASSES:
+                            classes_output_tensor_info,
                         tf.saved_model.signature_constants.CLASSIFY_OUTPUT_SCORES:
-                        scores_output_tensor_info
+                            scores_output_tensor_info
                     },
                     method_name=tf.saved_model.signature_constants.
-                    CLASSIFY_METHOD_NAME))
-            
+                        CLASSIFY_METHOD_NAME))
+
             predict_inputs_tensor_info = tf.saved_model.utils.build_tensor_info(jpegs)
             prediction_signature = (
                 tf.saved_model.signature_def_utils.build_signature_def(
@@ -113,21 +113,22 @@ def main(argv=None):
                     },
                     method_name=tf.saved_model.signature_constants.PREDICT_METHOD_NAME
                 ))
-            
+
             legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
             builder.add_meta_graph_and_variables(
                 sess, [tf.saved_model.tag_constants.SERVING],
                 signature_def_map={
                     'predict_images':
-                    prediction_signature,
+                        prediction_signature,
                     tf.saved_model.signature_constants.
-                    DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-                    classification_signature,
+                        DEFAULT_SERVING_SIGNATURE_DEF_KEY:
+                        classification_signature,
                 },
                 legacy_init_op=legacy_init_op)
-            
+
             builder.save()
             print('Successfully exported model to %s' % FLAGS.output_dir)
+
 
 if __name__ == '__main__':
     tf.app.run()

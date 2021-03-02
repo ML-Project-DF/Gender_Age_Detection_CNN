@@ -13,7 +13,6 @@ from model import select_model
 import json
 import re
 
-
 LAMBDA = 0.01
 MOM = 0.9
 tf.app.flags.DEFINE_string('pre_checkpoint_path', '',
@@ -42,7 +41,7 @@ tf.app.flags.DEFINE_float('pdrop', 0.,
                           'Dropout probability')
 
 tf.app.flags.DEFINE_integer('max_steps', 40000,
-                          'Number of iterations')
+                            'Number of iterations')
 
 tf.app.flags.DEFINE_integer('steps_per_decay', 10000,
                             'Number of steps before learning rate decay')
@@ -56,24 +55,27 @@ tf.app.flags.DEFINE_integer('batch_size', 128,
                             'Batch size')
 
 tf.app.flags.DEFINE_string('checkpoint', 'checkpoint',
-                          'Checkpoint name')
+                           'Checkpoint name')
 
 tf.app.flags.DEFINE_string('model_type', 'default',
                            'Type of convnet')
 
 tf.app.flags.DEFINE_string('pre_model',
-                            '',#'./inception_v3.ckpt',
+                           '',  # './inception_v3.ckpt',
                            'checkpoint file')
 FLAGS = tf.app.flags.FLAGS
 
+
 # Every 5k steps cut learning rate in half
 def exponential_staircase_decay(at_step=10000, decay_rate=0.1):
-
     print('decay [%f] every [%d] steps' % (decay_rate, at_step))
+
     def _decay(lr, global_step):
         return tf.train.exponential_decay(lr, global_step,
                                           at_step, decay_rate, staircase=True)
+
     return _decay
+
 
 def optimizer(optim, eta, loss_fn, at_step, decay_rate):
     global_step = tf.Variable(0, trainable=False)
@@ -85,7 +87,9 @@ def optimizer(optim, eta, loss_fn, at_step, decay_rate):
         optz = lambda lr: tf.train.MomentumOptimizer(lr, MOM)
         lr_decay_fn = exponential_staircase_decay(at_step, decay_rate)
 
-    return tf.contrib.layers.optimize_loss(loss_fn, global_step, eta, optz, clip_gradients=4., learning_rate_decay_fn=lr_decay_fn)
+    return tf.contrib.layers.optimize_loss(loss_fn, global_step, eta, optz, clip_gradients=4.,
+                                           learning_rate_decay_fn=lr_decay_fn)
+
 
 def loss(logits, labels):
     labels = tf.cast(labels, tf.int32)
@@ -97,7 +101,7 @@ def loss(logits, labels):
     regularization_losses = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
     total_loss = cross_entropy_mean + LAMBDA * sum(regularization_losses)
     tf.summary.scalar('tl (raw)', total_loss)
-    #total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
+    # total_loss = tf.add_n(losses + regularization_losses, name='total_loss')
     loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
     loss_averages_op = loss_averages.apply(losses + [total_loss])
     for l in losses + [total_loss]:
@@ -106,6 +110,7 @@ def loss(logits, labels):
     with tf.control_dependencies([loss_averages_op]):
         total_loss = tf.identity(total_loss)
     return total_loss
+
 
 def main(argv=None):
     with tf.Graph().as_default():
@@ -117,8 +122,9 @@ def main(argv=None):
         with open(input_file, 'r') as f:
             md = json.load(f)
 
-        images, labels, _ = distorted_inputs(FLAGS.train_dir, FLAGS.batch_size, FLAGS.image_size, FLAGS.num_preprocess_threads)
-        logits = model_fn(md['nlabels'], images, 1-FLAGS.pdrop, True)
+        images, labels, _ = distorted_inputs(FLAGS.train_dir, FLAGS.batch_size, FLAGS.image_size,
+                                             FLAGS.num_preprocess_threads)
+        logits = model_fn(md['nlabels'], images, 1 - FLAGS.pdrop, True)
         total_loss = loss(logits, labels)
 
         train_op = optimizer(FLAGS.optim, FLAGS.eta, total_loss, FLAGS.steps_per_decay, FLAGS.eta_decay_rate)
@@ -145,7 +151,6 @@ def main(argv=None):
                 print('%s: Pre-trained model restored from %s' %
                       (datetime.now(), FLAGS.pre_checkpoint_path))
 
-
         run_dir = '%s/run-%d' % (FLAGS.train_dir, os.getpid())
 
         checkpoint_path = '%s/%s' % (run_dir, FLAGS.checkpoint)
@@ -157,13 +162,11 @@ def main(argv=None):
 
         tf.train.start_queue_runners(sess=sess)
 
-
         summary_writer = tf.summary.FileWriter(run_dir, sess.graph)
         steps_per_train_epoch = int(md['train_counts'] / FLAGS.batch_size)
         num_steps = FLAGS.max_steps if FLAGS.epochs < 1 else FLAGS.epochs * steps_per_train_epoch
         print('Requested number of steps [%d]' % num_steps)
 
-        
         for step in xrange(num_steps):
             start_time = time.time()
             _, loss_value = sess.run([train_op, total_loss])
@@ -175,7 +178,7 @@ def main(argv=None):
                 num_examples_per_step = FLAGS.batch_size
                 examples_per_sec = num_examples_per_step / duration
                 sec_per_batch = float(duration)
-                
+
                 format_str = ('%s: step %d, loss = %.3f (%.1f examples/sec; %.3f ' 'sec/batch)')
                 print(format_str % (datetime.now(), step, loss_value,
                                     examples_per_sec, sec_per_batch))
@@ -184,9 +187,10 @@ def main(argv=None):
             if step % 100 == 0:
                 summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
-                
+
             if step % 1000 == 0 or (step + 1) == num_steps:
                 saver.save(sess, checkpoint_path, global_step=step)
+
 
 if __name__ == '__main__':
     tf.app.run()

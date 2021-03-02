@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
+
 FACE_PAD = 50
+
 
 class ObjectDetector(object):
     def __init__(self):
@@ -8,6 +10,7 @@ class ObjectDetector(object):
 
     def run(self, image_file):
         pass
+
 
 # OpenCV's cascade object detector
 class ObjectDetectorCascadeOpenCV(ObjectDetector):
@@ -53,4 +56,3 @@ class ObjectDetectorCascadeOpenCV(ObjectDetector):
         upper_cut = [min(img.shape[0], y + h + FACE_PAD), min(img.shape[1], x + w + FACE_PAD)]
         lower_cut = [max(y - FACE_PAD, 0), max(x - FACE_PAD, 0)]
         cv2.rectangle(img, (lower_cut[1], lower_cut[0]), (upper_cut[1], upper_cut[0]), (255, 0, 0), 2)
-

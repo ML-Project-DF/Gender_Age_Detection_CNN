@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 
+
 class YOLOBase(ObjectDetector):
     def __init__(self):
         pass
@@ -121,6 +122,7 @@ class YOLOBase(ObjectDetector):
         self.tgtdir = tgtdir
         self.load_model(model_name)
 
+
 class PersonDetectorYOLOTiny(YOLOBase):
     def __init__(self, model_name, basename='frontal-face', tgtdir='.', alpha=0.1, threshold=0.2, iou_threshold=0.5):
         self.alpha = alpha
@@ -199,6 +201,7 @@ class PersonDetectorYOLOTiny(YOLOBase):
                                probs_filtered[i]])
 
         return result
+
 
 # This model doesnt seem to work particularly well on data I have tried
 class FaceDetectorYOLO(YOLOBase):
@@ -279,5 +282,3 @@ class FaceDetectorYOLO(YOLOBase):
                            probs_filtered[i]])
 
         return result
-
-

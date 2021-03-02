@@ -15,16 +15,15 @@ import json
 RESIZE_HEIGHT = 256
 RESIZE_WIDTH = 256
 
-tf.app.flags.DEFINE_string('fold_dir', '/home/dpressel/dev/work/AgeGenderDeepLearning/Folds/train_val_txt_files_per_fold/test_fold_is_0',
+tf.app.flags.DEFINE_string('fold_dir', '/home/dpressel/dev/work/AgeGenderDeepLearning/Folds'
+                                       '/train_val_txt_files_per_fold/test_fold_is_0',
                            'Fold directory')
 
 tf.app.flags.DEFINE_string('data_dir', '/data/xdata/age-gender/aligned',
                            'Data directory')
 
-
 tf.app.flags.DEFINE_string('output_dir', '/home/dpressel/dev/work/AgeGenderDeepLearning/Folds/tf/test_fold_is_0',
                            'Output directory')
-
 
 tf.app.flags.DEFINE_string('train_list', 'age_train.txt',
                            'Training list')
@@ -39,18 +38,20 @@ tf.app.flags.DEFINE_integer('valid_shards', 2,
 tf.app.flags.DEFINE_integer('num_threads', 2,
                             'Number of threads to preprocess the images.')
 
-
 FLAGS = tf.app.flags.FLAGS
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
     if not isinstance(value, list):
         value = [value]
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-        
+
+
 def _bytes_feature(value):
     """Wrapper for inserting bytes features into Example proto."""
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
 
 def _convert_to_example(filename, image_buffer, label, height, width):
     """Build an Example proto for an example.
@@ -72,36 +73,37 @@ def _convert_to_example(filename, image_buffer, label, height, width):
         'image/width': _int64_feature(width)
     }))
     return example
-    
+
+
 class ImageCoder(object):
     """Helper class that provides TensorFlow image coding utilities."""
-    
+
     def __init__(self):
         # Create a single Session to run all image coding calls.
         self._sess = tf.Session()
-        
+
         # Initializes function that converts PNG to JPEG data.
         self._png_data = tf.placeholder(dtype=tf.string)
         image = tf.image.decode_png(self._png_data, channels=3)
         self._png_to_jpeg = tf.image.encode_jpeg(image, format='rgb', quality=100)
-        
+
         # Initializes function that decodes RGB JPEG data.
         self._decode_jpeg_data = tf.placeholder(dtype=tf.string)
         self._decode_jpeg = tf.image.decode_jpeg(self._decode_jpeg_data, channels=3)
         cropped = tf.image.resize_images(self._decode_jpeg, [RESIZE_HEIGHT, RESIZE_WIDTH])
-        cropped = tf.cast(cropped, tf.uint8) 
+        cropped = tf.cast(cropped, tf.uint8)
         self._recoded = tf.image.encode_jpeg(cropped, format='rgb', quality=100)
 
     def png_to_jpeg(self, image_data):
         return self._sess.run(self._png_to_jpeg,
                               feed_dict={self._png_data: image_data})
-        
+
     def resample_jpeg(self, image_data):
-        image = self._sess.run(self._recoded, #self._decode_jpeg,
+        image = self._sess.run(self._recoded,  # self._decode_jpeg,
                                feed_dict={self._decode_jpeg_data: image_data})
 
         return image
-        
+
 
 def _is_png(filename):
     """Determine if a file contains a PNG format image.
@@ -111,6 +113,7 @@ def _is_png(filename):
     boolean indicating if the image is a PNG.
     """
     return '.png' in filename
+
 
 def _process_image(filename, coder):
     """Process a single image file.
@@ -134,6 +137,7 @@ def _process_image(filename, coder):
     # Decode the RGB JPEG.
     image = coder.resample_jpeg(image_data)
     return image, RESIZE_HEIGHT, RESIZE_WIDTH
+
 
 def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
                                labels, num_shards):
@@ -159,7 +163,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
                                ranges[thread_index][1],
                                num_shards_per_batch + 1).astype(int)
     num_files_in_thread = ranges[thread_index][1] - ranges[thread_index][0]
-    
+
     counter = 0
     for s in xrange(num_shards_per_batch):
         # Generate a sharded version of the file name, e.g. 'train-00002-of-00010'
@@ -167,7 +171,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
         output_filename = '%s-%.5d-of-%.5d' % (name, shard, num_shards)
         output_file = os.path.join(FLAGS.output_dir, output_filename)
         writer = tf.python_io.TFRecordWriter(output_file)
-        
+
         shard_counter = 0
         files_in_shard = np.arange(shard_ranges[s], shard_ranges[s + 1], dtype=int)
         for i in files_in_shard:
@@ -175,7 +179,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
             label = int(labels[i])
 
             image_buffer, height, width = _process_image(filename, coder)
-            
+
             example = _convert_to_example(filename, image_buffer, label,
                                           height, width)
             writer.write(example.SerializeToString())
@@ -196,6 +200,7 @@ def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
           (datetime.now(), thread_index, counter, num_files_in_thread))
     sys.stdout.flush()
 
+
 def _process_image_files(name, filenames, labels, num_shards):
     """Process and save list of images as TFRecord of Example protos.
     Args:
@@ -211,7 +216,7 @@ def _process_image_files(name, filenames, labels, num_shards):
     ranges = []
     threads = []
     for i in xrange(len(spacing) - 1):
-        ranges.append([spacing[i], spacing[i+1]])
+        ranges.append([spacing[i], spacing[i + 1]])
 
     # Launch a thread for each batch.
     print('Launching %d threads for spacings: %s' % (FLAGS.num_threads, ranges))
@@ -219,7 +224,7 @@ def _process_image_files(name, filenames, labels, num_shards):
 
     # Create a mechanism for monitoring when all threads are finished.
     coord = tf.train.Coordinator()
-    
+
     coder = ImageCoder()
 
     threads = []
@@ -235,6 +240,7 @@ def _process_image_files(name, filenames, labels, num_shards):
           (datetime.now(), len(filenames)))
     sys.stdout.flush()
 
+
 def _find_image_files(list_file, data_dir):
     print('Determining list of input files and labels from %s.' % list_file)
     files_labels = [l.strip().split(' ') for l in tf.gfile.FastGFile(
@@ -245,7 +251,7 @@ def _find_image_files(list_file, data_dir):
 
     # Leave label index 0 empty as a background class.
     label_index = 1
-    
+
     # Construct the list of JPEG files and labels.
     for path, label in files_labels:
         jpeg_file_path = '%s/%s' % (data_dir, path)
@@ -260,10 +266,10 @@ def _find_image_files(list_file, data_dir):
     shuffled_index = list(range(len(filenames)))
     random.seed(12345)
     random.shuffle(shuffled_index)
-    
+
     filenames = [filenames[i] for i in shuffled_index]
     labels = [labels[i] for i in shuffled_index]
-    
+
     print('Found %d JPEG files across %d labels inside %s.' %
           (len(filenames), len(unique_labels), data_dir))
     return filenames, labels
@@ -282,6 +288,7 @@ def _process_dataset(name, filename, directory, num_shards):
     unique_labels = set(labels)
     return len(labels), unique_labels
 
+
 def main(unused_argv):
     assert not FLAGS.train_shards % FLAGS.num_threads, (
         'Please make the FLAGS.num_threads commensurate with FLAGS.train_shards')
@@ -296,26 +303,25 @@ def main(unused_argv):
 
     # Run it!
     valid, valid_outcomes = _process_dataset('validation', '%s/%s' % (FLAGS.fold_dir, FLAGS.valid_list), FLAGS.data_dir,
-                     FLAGS.valid_shards)
+                                             FLAGS.valid_shards)
     train, train_outcomes = _process_dataset('train', '%s/%s' % (FLAGS.fold_dir, FLAGS.train_list), FLAGS.data_dir,
-                     FLAGS.train_shards)
-    
+                                             FLAGS.train_shards)
+
     if len(valid_outcomes) != len(valid_outcomes | train_outcomes):
-        print('Warning: unattested labels in training data [%s]' % (', '.join((valid_outcomes | train_outcomes) - valid_outcomes)))
-        
+        print('Warning: unattested labels in training data [%s]' % (
+            ', '.join((valid_outcomes | train_outcomes) - valid_outcomes)))
+
     output_file = os.path.join(FLAGS.output_dir, 'md.json')
 
-
-    md = { 'num_valid_shards': FLAGS.valid_shards, 
-           'num_train_shards': FLAGS.train_shards,
-           'valid_counts': valid,
-           'train_counts': train,
-           'timestamp': str(datetime.now()),
-           'nlabels': len(train_outcomes) }
+    md = {'num_valid_shards': FLAGS.valid_shards,
+          'num_train_shards': FLAGS.train_shards,
+          'valid_counts': valid,
+          'train_counts': train,
+          'timestamp': str(datetime.now()),
+          'nlabels': len(train_outcomes)}
     with open(output_file, 'w') as f:
         json.dump(md, f)
 
 
 if __name__ == '__main__':
     tf.app.run()
-
